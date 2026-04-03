@@ -1,249 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tap Cricket Pro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cricket Pro: HD Dual-Play</title>
+    <style>
+        :root {
+            --stadium-green: #2d5a27;
+            --pitch-color: #d2b48c;
+            --sky-blue: #1a1a2e;
+        }
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial;
-    text-align: center;
-    color: white;
-    background: url('https://images.unsplash.com/photo-1593341646782-e0b495cff86d') no-repeat center/cover;
-}
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--sky-blue);
+            color: white;
+            overflow: hidden;
+            touch-action: none;
+        }
 
-.overlay {
-    background: rgba(0,0,0,0.6);
-    min-height: 100vh;
-    padding: 20px;
-}
+        /* Stadium Atmosphere */
+        .stadium {
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at top, #30475e 0%, #1a1a2e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
 
-h1 { margin-top: 10px; }
+        /* 3D Pitch Container */
+        .game-container {
+            position: relative;
+            width: 350px;
+            height: 500px;
+            perspective: 1000px;
+        }
 
-#game, #startScreen {
-    margin-top: 20px;
-}
+        .pitch {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 150%;
+            background: linear-gradient(to top, var(--pitch-color) 20%, var(--stadium-green) 80%);
+            transform: rotateX(60deg);
+            transform-origin: bottom;
+            border-radius: 50px 50px 0 0;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
 
-#pitch {
-    width: 300px;
-    height: 200px;
-    margin: 20px auto;
-    background: linear-gradient(green, darkgreen);
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-}
+        /* Players */
+        .player {
+            position: absolute;
+            font-size: 50px;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
 
-#ball {
-    width: 20px;
-    height: 20px;
-    background: red;
-    border-radius: 50%;
-    position: absolute;
-    top: 0;
-    left: 140px;
-}
+        #batsman { bottom: 80px; left: 50%; transform: translateX(-50%); }
+        #bowler { top: 50px; left: 50%; transform: translateX(-50%); }
 
-#bat {
-    position: absolute;
-    bottom: 10px;
-    left: 130px;
-    font-size: 30px;
-}
+        #ball {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle at 30% 30%, #ff4d4d, #800000);
+            border-radius: 50%;
+            z-index: 15;
+            display: none;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
 
-input {
-    padding: 10px;
-    font-size: 16px;
-}
+        /* UI Elements */
+        .hud {
+            position: absolute;
+            top: 20px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.6);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
 
-button {
-    padding: 10px 20px;
-    font-size: 18px;
-    margin-top: 10px;
-    border: none;
-    background: orange;
-    border-radius: 5px;
-}
+        .mode-indicator {
+            position: absolute;
+            top: 100px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #f39c12;
+            text-shadow: 0 0 10px #f39c12;
+        }
 
-#leaderboard {
-    margin-top: 20px;
-}
+        .power-bar-container {
+            position: absolute;
+            right: 20px;
+            height: 200px;
+            width: 15px;
+            background: #444;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
 
-.hidden { display: none; }
-</style>
+        #power-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(to top, #2ecc71, #f1c40f, #e74c3c);
+        }
+
+        button {
+            background: #e67e22;
+            border: none;
+            padding: 15px 30px;
+            color: white;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .message-pop {
+            position: absolute;
+            font-size: 2rem;
+            font-weight: bold;
+            animation: bounceIn 0.5s ease-out;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="overlay">
-
-<h1>🏏 Cricket Swipe Challenge</h1>
-
-<!-- START SCREEN -->
-<div id="startScreen">
-    <input type="text" id="playerName" placeholder="Enter your name">
-    <br>
-    <button onclick="startGame()">Start Game</button>
+<div id="overlay">
+    <h1 style="font-size: 3rem; margin-bottom: 0;">PRO CRICKET</h1>
+    <p>BOWLING & BATTING EDITION</p>
+    <button onclick="initGame()">PLAY NOW</button>
 </div>
 
-<!-- GAME -->
-<div id="game" class="hidden">
-    <h2 id="welcome"></h2>
-    <div id="score">Score: 0</div>
-    <div id="balls">Balls Left: 6</div>
-
-    <div id="pitch">
-        <div id="ball"></div>
-        <div id="bat">🏏</div>
+<div class="stadium">
+    <div class="hud">
+        <div>SCORE: <span id="ui-score">0</span></div>
+        <div>BALLS: <span id="ui-balls">6</span></div>
     </div>
 
-    <p>👉 Swipe UP to hit!</p>
-</div>
+    <div id="mode-text" class="mode-indicator">PREPARING...</div>
 
-<!-- RESULT -->
-<div id="result" class="hidden"></div>
+    <div class="game-container">
+        <div class="pitch"></div>
+        <div id="bowler" class="player">🏃‍♂️</div>
+        <div id="ball"></div>
+        <div id="batsman" class="player">🏏</div>
+    </div>
 
-<!-- LEADERBOARD -->
-<div id="leaderboard">
-    <h3>🏆 Leaderboard</h3>
-    <ul id="scores"></ul>
-</div>
+    <div class="power-bar-container" id="power-ui">
+        <div id="power-fill"></div>
+    </div>
 
+    <p id="instruction" style="margin-top: 20px; color: #aaa;">Wait for your turn...</p>
 </div>
 
 <script>
-let score = 0;
-let balls = 6;
-let ball = document.getElementById("ball");
-let scoreDisplay = document.getElementById("score");
-let ballsDisplay = document.getElementById("balls");
-let result = document.getElementById("result");
-let player = "";
+    // Game States
+    const State = { BOWLING: 'BOWLING', BATTING: 'BATTING', TRANSITION: 'TRANSITION' };
+    let currentState = State.BOWLING;
+    
+    let score = 0;
+    let ballsRemaining = 6;
+    let isActive = false;
+    let power = 0;
+    let powerDir = 1;
+    let powerInterval;
 
-let ballMoving = false;
-let startY = 0;
-let endY = 0;
-let hitTime = 0;
+    const ball = document.getElementById('ball');
+    const bowler = document.getElementById('bowler');
+    const batsman = document.getElementById('batsman');
+    const powerFill = document.getElementById('power-fill');
+    const modeText = document.getElementById('mode-text');
+    const instruction = document.getElementById('instruction');
 
-// START GAME
-function startGame() {
-    player = document.getElementById("playerName").value || "Player";
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-    document.getElementById("welcome").innerText = "Welcome " + player;
-    loadLeaderboard();
-    bowl();
-}
+    function initGame() {
+        document.getElementById('overlay').style.display = 'none';
+        startBowlingPhase();
+    }
 
-// BALL MOVEMENT
-function bowl() {
-    ball.style.top = "0px";
-    ballMoving = true;
+    // --- BOWLING LOGIC ---
+    function startBowlingPhase() {
+        currentState = State.BOWLING;
+        modeText.innerText = "YOUR TURN TO BOWL";
+        instruction.innerText = "Tap and Hold to set Power, Release to Bowl!";
+        document.getElementById('power-ui').style.display = 'block';
+        
+        // Reset positions
+        ball.style.display = 'none';
+        bowler.style.top = '50px';
+        
+        window.onmousedown = window.ontouchstart = startPower;
+        window.onmouseup = window.ontouchend = deliverBall;
+    }
 
-    let pos = 0;
-    let speed = setInterval(() => {
-        pos += 5;
-        ball.style.top = pos + "px";
+    function startPower() {
+        if(currentState !== State.BOWLING || isActive) return;
+        power = 0;
+        powerInterval = setInterval(() => {
+            power += 2 * powerDir;
+            if(power >= 100 || power <= 0) powerDir *= -1;
+            powerFill.style.height = power + '%';
+        }, 20);
+    }
 
-        if (pos >= 150) {
-            clearInterval(speed);
-            ballMoving = false;
-            balls--;
-            ballsDisplay.innerText = "Balls Left: " + balls;
+    function deliverBall() {
+        if(currentState !== State.BOWLING || isActive) return;
+        clearInterval(powerInterval);
+        isActive = true;
+        
+        // Bowler animation
+        bowler.style.top = '100px';
+        
+        setTimeout(() => {
+            ball.style.display = 'block';
+            ball.style.top = '110px';
+            ball.style.left = '50%';
+            
+            let pos = 110;
+            let ballSpeed = 5 + (power / 10);
+            
+            let movement = setInterval(() => {
+                pos += ballSpeed;
+                ball.style.top = pos + 'px';
+                
+                // Ball reaches batsman
+                if(pos >= 380) {
+                    clearInterval(movement);
+                    handleDeliveryOutcome();
+                }
+            }, 20);
+        }, 300);
+    }
 
-            if (balls === 0) endGame();
-            else setTimeout(bowl, 1000);
+    function handleDeliveryOutcome() {
+        // AI Batsman Logic
+        let hitChance = Math.random() * 100;
+        if(hitChance > (power + 20)) {
+            triggerMessage("Clean Bowled! ⚡", "#e74c3c");
+            score += 10; // Reward for bowling them out
+        } else {
+            triggerMessage("Defended! 🏏", "#3498db");
         }
-    }, 30);
-
-    hitTime = Date.now();
-}
-
-// SWIPE DETECTION
-document.addEventListener("touchstart", e => {
-    startY = e.touches[0].clientY;
-});
-
-document.addEventListener("touchend", e => {
-    endY = e.changedTouches[0].clientY;
-
-    if (startY - endY > 50) {
-        hit();
-    }
-});
-
-// HIT LOGIC
-function hit() {
-    if (!ballMoving) return;
-
-    let reaction = Date.now() - hitTime;
-
-    if (reaction > 300 && reaction < 700) {
-        let runs = [1,2,4,6][Math.floor(Math.random()*4)];
-        score += runs;
-        showMessage("🔥 " + runs + " Runs!");
-    } else {
-        showMessage("OUT ❌");
+        updateUI();
+        nextBall();
     }
 
-    scoreDisplay.innerText = "Score: " + score;
-    ballMoving = false;
-}
+    // --- BATTING LOGIC ---
+    function startBattingPhase() {
+        currentState = State.BATTING;
+        modeText.innerText = "YOUR TURN TO BAT";
+        instruction.innerText = "Swipe UP to hit when the ball arrives!";
+        document.getElementById('power-ui').style.display = 'none';
+        
+        isActive = false;
+        setTimeout(aiBowl, 1500);
+    }
 
-// MESSAGE POPUP
-function showMessage(msg) {
-    let m = document.createElement("div");
-    m.innerText = msg;
-    m.style.position = "fixed";
-    m.style.top = "50%";
-    m.style.left = "50%";
-    m.style.transform = "translate(-50%, -50%)";
-    m.style.background = "black";
-    m.style.padding = "20px";
-    m.style.borderRadius = "10px";
+    function aiBowl() {
+        if(currentState !== State.BATTING) return;
+        ball.style.display = 'block';
+        ball.style.top = '110px';
+        let pos = 110;
+        let speed = 8 + Math.random() * 7;
+        
+        isActive = true;
+        let hitDetected = false;
 
-    document.body.appendChild(m);
+        // Listen for swipe
+        let startY = 0;
+        window.onmousedown = window.ontouchstart = (e) => startY = e.clientY || e.touches[0].clientY;
+        window.onmouseup = window.ontouchend = (e) => {
+            let endY = e.clientY || e.changedTouches[0].clientY;
+            if(startY - endY > 30 && !hitDetected) {
+                let timing = pos;
+                if(timing > 330 && timing < 400) {
+                    hitDetected = true;
+                    processHit(timing);
+                }
+            }
+        };
 
-    setTimeout(() => m.remove(), 800);
-}
+        let move = setInterval(() => {
+            pos += speed;
+            ball.style.top = pos + 'px';
+            if(pos > 450) {
+                clearInterval(move);
+                if(!hitDetected) {
+                    triggerMessage("Missed! ❌", "#95a5a6");
+                    nextBall();
+                }
+            }
+            if(hitDetected) clearInterval(move);
+        }, 20);
+    }
 
-// END GAME
-function endGame() {
-    document.getElementById("game").classList.add("hidden");
-    result.classList.remove("hidden");
+    function processHit(timing) {
+        let runs = [1, 2, 4, 6, "OUT"][Math.floor(Math.random() * 5)];
+        if(runs === "OUT") {
+            triggerMessage("CAUGHT OUT! ✋", "#e74c3c");
+        } else {
+            score += runs;
+            triggerMessage(runs + " RUNS! 🔥", "#2ecc71");
+        }
+        ball.style.display = 'none';
+        updateUI();
+        setTimeout(nextBall, 1000);
+    }
 
-    saveScore();
+    // --- UTILS ---
+    function nextBall() {
+        ballsRemaining--;
+        updateUI();
+        isActive = false;
+        
+        if(ballsRemaining <= 0) {
+            if(currentState === State.BOWLING) {
+                ballsRemaining = 6;
+                triggerMessage("Switching Sides...", "#f1c40f");
+                setTimeout(startBattingPhase, 2000);
+            } else {
+                endGame();
+            }
+        } else {
+            if(currentState === State.BOWLING) setTimeout(startBowlingPhase, 1500);
+            else setTimeout(aiBowl, 1500);
+        }
+    }
 
-    result.innerHTML = `
-        <h2>Game Over 🎉</h2>
-        <p>${player} Score: ${score}</p>
-        <button onclick="location.reload()">Play Again</button>
-    `;
-}
+    function triggerMessage(text, color) {
+        const msg = document.createElement('div');
+        msg.className = 'message-pop';
+        msg.innerText = text;
+        msg.style.color = color;
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 1000);
+    }
 
-// SAVE SCORE
-function saveScore() {
-    let scores = JSON.parse(localStorage.getItem("cricketScores")) || [];
-    scores.push({name: player, score: score});
-    scores.sort((a,b)=>b.score-a.score);
-    scores = scores.slice(0,5);
-    localStorage.setItem("cricketScores", JSON.stringify(scores));
-}
+    function updateUI() {
+        document.getElementById('ui-score').innerText = score;
+        document.getElementById('ui-balls').innerText = ballsRemaining;
+    }
 
-// LOAD LEADERBOARD
-function loadLeaderboard() {
-    let scores = JSON.parse(localStorage.getItem("cricketScores")) || [];
-    let list = document.getElementById("scores");
-    list.innerHTML = "";
-
-    scores.forEach(s => {
-        let li = document.createElement("li");
-        li.innerText = s.name + " - " + s.score;
-        list.appendChild(li);
-    });
-}
+    function endGame() {
+        document.getElementById('overlay').style.display = 'flex';
+        document.getElementById('overlay').innerHTML = `
+            <h1>INNINGS OVER</h1>
+            <p>Final Score: ${score}</p>
+            <button onclick="location.reload()">REPLAY</button>
+        `;
+    }
 </script>
 
 </body>
