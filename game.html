@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe | Premium Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;800&display=swap');
+
+        :root {
+            /* Vibrant Gradient Palette */
+            --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --glass-white: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --x-color: #FF2D55; /* Electric Pink */
+            --o-color: #00F2FF; /* Neon Aqua */
+            --winner-glow: rgba(255, 215, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            overflow: hidden;
+            color: white;
+        }
+
+        /* Animated Background Blobs */
+        .blob {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.4;
+            animation: move 20s infinite alternate;
+        }
+
+        .blob-2 {
+            bottom: 10%;
+            right: 10%;
+            background: linear-gradient(135deg, #00f2ff 0%, #0061ff 100%);
+            animation-delay: -5s;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes move {
+            from { transform: translate(-50px, -50px); }
+            to { transform: translate(100px, 100px); }
+        }
+
+        .container {
+            background: var(--glass-white);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 3rem 2rem;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            width: 90%;
+            max-width: 420px;
+            transform: translateY(0);
+            transition: transform 0.5s ease;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, #ccc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Toggle Styling */
+        .mode-switch {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 50px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--o-color); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        #status {
+            font-size: 1.1rem;
+            font-weight: 300;
+            margin-bottom: 25px;
+            color: #ddd;
+            height: 24px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .cell {
+            aspect-ratio: 1/1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cell:hover:not(.x):not(.o) {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Advanced Piece Animations */
+        .cell.x { 
+            color: var(--x-color); 
+            text-shadow: 0 0 20px rgba(255, 45, 85, 0.5);
+            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        .cell.o { 
+            color: var(--o-color); 
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+            animation: rotateIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3) rotate(-45deg); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+
+        @keyframes rotateIn {
+            0% { transform: rotate(-180deg) scale(0); opacity: 0; }
+            100% { transform: rotate(0) scale(1); opacity: 1; }
+        }
+
+        /* Winner Highlighting */
+        .cell.winner {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #fff;
+            animation: pulseWinner 1.5s infinite;
+            z-index: 10;
+        }
+
+        @keyframes pulseWinner {
+            0% { transform: scale(1); box-shadow: 0 0 0px var(--winner-glow); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px var(--winner-glow); }
+            100% { transform: scale(1); box-shadow: 0 0 0px var(--winner-glow); }
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            color: #24243e;
+            border: none;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.1);
+            filter: brightness(1.1);
+        }
+
+        .reset-btn:active { transform: translateY(0); }
+
+    </style>
+</head>
+<body>
+
+    <div class="blob"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        
+        <div class="mode-switch">
+            <span style="font-size: 0.8rem; opacity: 0.7;">PVP</span>
+            <label class="switch">
+                <input type="checkbox" id="ai-toggle">
+                <span class="slider"></span>
+            </label>
+            <span style="font-size: 0.8rem; opacity: 0.7;">AI BOT</span>
+        </div>
+
+        <div id="status">Player X's Turn</div>
+        
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <button class="reset-btn" onclick="restartGame()">RESET GAME</button>
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        const cells = document.querySelectorAll('.cell');
+        const statusText = document.getElementById('status');
+        const aiToggle = document.getElementById('ai-toggle');
+        
+        let currentPlayer = 'X';
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let gameActive = true;
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function handleCellClick(e) {
+            const clickedCell = e.target;
+            const idx = parseInt(clickedCell.getAttribute('data-index'));
+
+            if (gameState[idx] !== "" || !gameActive) return;
+
+            makeMove(idx, currentPlayer);
+
+            if (gameActive && aiToggle.checked && currentPlayer === 'O') {
+                statusText.innerText = "AI is calculating...";
+                setTimeout(aiMove, 600);
+            }
+        }
+
+        function makeMove(idx, player) {
+            gameState[idx] = player;
+            cells[idx].innerText = player;
+            cells[idx].classList.add(player.toLowerCase());
+            
+            if (checkWin()) return;
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            statusText.innerText = `Player ${currentPlayer}'s Turn`;
+        }
+
+        function aiMove() {
+            if (!gameActive) return;
+            // AI Priority: 1. Win, 2. Block, 3. Random
+            let move = findBestMove('O') || findBestMove('X') || getRandomMove();
+            if (move !== null) makeMove(move, 'O');
+        }
+
+        function findBestMove(player) {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                const vals = [gameState[a], gameState[b], gameState[c]];
+                if (vals.filter(v => v === player).length === 2 && vals.filter(v => v === "").length === 1) {
+                    return condition[vals.indexOf("")];
+                }
+            }
+            return null;
+        }
+
+        function getRandomMove() {
+            const availableMoves = gameState.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
+            return availableMoves.length > 0 ? availableMoves[Math.floor(Math.random() * availableMoves.length)] : null;
+        }
+
+        function checkWin() {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                    statusText.innerHTML = `<b style="color:#FFD700">Winner: Player ${gameState[a]}!</b>`;
+                    [a,b,c].forEach(i => cells[i].classList.add('winner'));
+                    gameActive = false;
+                    return true;
+                }
+            }
+            if (!gameState.includes("")) {
+                statusText.innerText = "It's a Draw! 🤝";
+                gameActive = false;
+                return true;
+            }
+            return false;
+        }
+
+        function restartGame() {
+            currentPlayer = 'X';
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            gameActive = true;
+            statusText.innerText = "Player X's Turn";
+            cells.forEach(cell => {
+                cell.innerText = "";
+                cell.classList.remove('x', 'o', 'winner');
+            });
+        }
+
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+    </script>
+</body>
+</html>
