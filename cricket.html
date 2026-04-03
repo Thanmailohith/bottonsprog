@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tap Cricket Pro</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    text-align: center;
+    color: white;
+    background: url('https://images.unsplash.com/photo-1593341646782-e0b495cff86d') no-repeat center/cover;
+}
+
+.overlay {
+    background: rgba(0,0,0,0.6);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+h1 { margin-top: 10px; }
+
+#game, #startScreen {
+    margin-top: 20px;
+}
+
+#pitch {
+    width: 300px;
+    height: 200px;
+    margin: 20px auto;
+    background: linear-gradient(green, darkgreen);
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#ball {
+    width: 20px;
+    height: 20px;
+    background: red;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 140px;
+}
+
+#bat {
+    position: absolute;
+    bottom: 10px;
+    left: 130px;
+    font-size: 30px;
+}
+
+input {
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    margin-top: 10px;
+    border: none;
+    background: orange;
+    border-radius: 5px;
+}
+
+#leaderboard {
+    margin-top: 20px;
+}
+
+.hidden { display: none; }
+</style>
+</head>
+
+<body>
+
+<div class="overlay">
+
+<h1>🏏 Cricket Swipe Challenge</h1>
+
+<!-- START SCREEN -->
+<div id="startScreen">
+    <input type="text" id="playerName" placeholder="Enter your name">
+    <br>
+    <button onclick="startGame()">Start Game</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden">
+    <h2 id="welcome"></h2>
+    <div id="score">Score: 0</div>
+    <div id="balls">Balls Left: 6</div>
+
+    <div id="pitch">
+        <div id="ball"></div>
+        <div id="bat">🏏</div>
+    </div>
+
+    <p>👉 Swipe UP to hit!</p>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="hidden"></div>
+
+<!-- LEADERBOARD -->
+<div id="leaderboard">
+    <h3>🏆 Leaderboard</h3>
+    <ul id="scores"></ul>
+</div>
+
+</div>
+
+<script>
+let score = 0;
+let balls = 6;
+let ball = document.getElementById("ball");
+let scoreDisplay = document.getElementById("score");
+let ballsDisplay = document.getElementById("balls");
+let result = document.getElementById("result");
+let player = "";
+
+let ballMoving = false;
+let startY = 0;
+let endY = 0;
+let hitTime = 0;
+
+// START GAME
+function startGame() {
+    player = document.getElementById("playerName").value || "Player";
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+    document.getElementById("welcome").innerText = "Welcome " + player;
+    loadLeaderboard();
+    bowl();
+}
+
+// BALL MOVEMENT
+function bowl() {
+    ball.style.top = "0px";
+    ballMoving = true;
+
+    let pos = 0;
+    let speed = setInterval(() => {
+        pos += 5;
+        ball.style.top = pos + "px";
+
+        if (pos >= 150) {
+            clearInterval(speed);
+            ballMoving = false;
+            balls--;
+            ballsDisplay.innerText = "Balls Left: " + balls;
+
+            if (balls === 0) endGame();
+            else setTimeout(bowl, 1000);
+        }
+    }, 30);
+
+    hitTime = Date.now();
+}
+
+// SWIPE DETECTION
+document.addEventListener("touchstart", e => {
+    startY = e.touches[0].clientY;
+});
+
+document.addEventListener("touchend", e => {
+    endY = e.changedTouches[0].clientY;
+
+    if (startY - endY > 50) {
+        hit();
+    }
+});
+
+// HIT LOGIC
+function hit() {
+    if (!ballMoving) return;
+
+    let reaction = Date.now() - hitTime;
+
+    if (reaction > 300 && reaction < 700) {
+        let runs = [1,2,4,6][Math.floor(Math.random()*4)];
+        score += runs;
+        showMessage("🔥 " + runs + " Runs!");
+    } else {
+        showMessage("OUT ❌");
+    }
+
+    scoreDisplay.innerText = "Score: " + score;
+    ballMoving = false;
+}
+
+// MESSAGE POPUP
+function showMessage(msg) {
+    let m = document.createElement("div");
+    m.innerText = msg;
+    m.style.position = "fixed";
+    m.style.top = "50%";
+    m.style.left = "50%";
+    m.style.transform = "translate(-50%, -50%)";
+    m.style.background = "black";
+    m.style.padding = "20px";
+    m.style.borderRadius = "10px";
+
+    document.body.appendChild(m);
+
+    setTimeout(() => m.remove(), 800);
+}
+
+// END GAME
+function endGame() {
+    document.getElementById("game").classList.add("hidden");
+    result.classList.remove("hidden");
+
+    saveScore();
+
+    result.innerHTML = `
+        <h2>Game Over 🎉</h2>
+        <p>${player} Score: ${score}</p>
+        <button onclick="location.reload()">Play Again</button>
+    `;
+}
+
+// SAVE SCORE
+function saveScore() {
+    let scores = JSON.parse(localStorage.getItem("cricketScores")) || [];
+    scores.push({name: player, score: score});
+    scores.sort((a,b)=>b.score-a.score);
+    scores = scores.slice(0,5);
+    localStorage.setItem("cricketScores", JSON.stringify(scores));
+}
+
+// LOAD LEADERBOARD
+function loadLeaderboard() {
+    let scores = JSON.parse(localStorage.getItem("cricketScores")) || [];
+    let list = document.getElementById("scores");
+    list.innerHTML = "";
+
+    scores.forEach(s => {
+        let li = document.createElement("li");
+        li.innerText = s.name + " - " + s.score;
+        list.appendChild(li);
+    });
+}
+</script>
+
+</body>
+</html>
