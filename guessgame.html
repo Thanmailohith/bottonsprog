@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle | Aurora Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;800&display=swap');
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #312e81);
+            --tile-bg: rgba(255, 255, 255, 0.05);
+            --tile-border: rgba(255, 255, 255, 0.2);
+            --correct: linear-gradient(135deg, #22c55e, #16a34a);
+            --present: linear-gradient(135deg, #eab308, #ca8a04);
+            --absent: #334155;
+            --text-main: #ffffff;
+            --accent-glow: rgba(0, 242, 255, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* The Grid */
+        #game-board {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .tile {
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--tile-border);
+            border-radius: 12px;
+            background: var(--tile-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: transform 0.2s;
+        }
+
+        .tile[data-state="active"] {
+            border-color: #fff;
+            transform: scale(1.05);
+        }
+
+        /* Animations */
+        @keyframes flip {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0); }
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        @keyframes bounce {
+            0%, 20% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            50% { transform: translateY(5px); }
+            60% { transform: translateY(-10px); }
+            80% { transform: translateY(2px); }
+            100% { transform: translateY(0); }
+        }
+
+        .flip { animation: flip 0.5s ease forwards; }
+        .shake { animation: shake 0.5s ease; }
+        .bounce { animation: bounce 0.8s ease; }
+
+        .correct { background: var(--correct) !important; border: none !important; }
+        .present { background: var(--present) !important; border: none !important; }
+        .absent { background: var(--absent) !important; border: none !important; }
+
+        /* Keyboard */
+        #keyboard {
+            display: grid;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+
+        .kb-row {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .key {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 15px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
+            max-width: 45px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .key:hover { background: rgba(255, 255, 255, 0.2); }
+        .key.large { max-width: 70px; font-size: 0.8rem; }
+
+        /* New Footer Style */
+        .dev-credit {
+            margin-top: 2.5rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 300;
+        }
+
+        .dev-name {
+            display: block;
+            margin-top: 5px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        #message {
+            position: fixed;
+            top: 10%;
+            background: white;
+            color: black;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="message"></div>
+
+    <div class="container">
+        <h1>WORDLE</h1>
+        
+        <div id="game-board"></div>
+
+        <div id="keyboard">
+            <div class="kb-row">
+                <button class="key" data-key="Q">Q</button>
+                <button class="key" data-key="W">W</button>
+                <button class="key" data-key="E">E</button>
+                <button class="key" data-key="R">R</button>
+                <button class="key" data-key="T">T</button>
+                <button class="key" data-key="Y">Y</button>
+                <button class="key" data-key="U">U</button>
+                <button class="key" data-key="I">I</button>
+                <button class="key" data-key="O">O</button>
+                <button class="key" data-key="P">P</button>
+            </div>
+            <div class="kb-row">
+                <button class="key" data-key="A">A</button>
+                <button class="key" data-key="S">S</button>
+                <button class="key" data-key="D">D</button>
+                <button class="key" data-key="F">F</button>
+                <button class="key" data-key="G">G</button>
+                <button class="key" data-key="H">H</button>
+                <button class="key" data-key="J">J</button>
+                <button class="key" data-key="K">K</button>
+                <button class="key" data-key="L">L</button>
+            </div>
+            <div class="kb-row">
+                <button class="key large" data-key="ENTER">ENTER</button>
+                <button class="key" data-key="Z">Z</button>
+                <button class="key" data-key="X">X</button>
+                <button class="key" data-key="C">C</button>
+                <button class="key" data-key="V">V</button>
+                <button class="key" data-key="B">B</button>
+                <button class="key" data-key="N">N</button>
+                <button class="key" data-key="M">M</button>
+                <button class="key large" data-key="BACKSPACE">⌫</button>
+            </div>
+        </div>
+
+        <div class="dev-credit">
+            Developed by 
+            <span class="dev-name">Thanmai Lohith DeSouza</span>
+        </div>
+    </div>
+
+    <script>
+        const WORDS = ["REACT", "APPLE", "CLOUD", "SMART", "BRAIN", "LIGHT", "SPACE", "GHOST", "CODED", "MUSIC"];
+        const targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+        
+        let currentGuess = "";
+        let currentRow = 0;
+        let gameFinished = false;
+
+        const board = document.getElementById('game-board');
+        for (let i = 0; i < 6; i++) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            for (let j = 0; j < 5; j++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.id = `tile-${i}-${j}`;
+                row.appendChild(tile);
+            }
+            board.appendChild(row);
+        }
+
+        function showMessage(msg) {
+            const msgEl = document.getElementById('message');
+            msgEl.innerText = msg;
+            msgEl.style.display = 'block';
+            setTimeout(() => msgEl.style.display = 'none', 2000);
+        }
+
+        function submitGuess() {
+            if (currentGuess.length !== 5) {
+                const row = document.getElementsByClassName('row')[currentRow];
+                row.classList.add('shake');
+                setTimeout(() => row.classList.remove('shake'), 500);
+                showMessage("Too short!");
+                return;
+            }
+
+            const rowTiles = [];
+            for (let i = 0; i < 5; i++) {
+                rowTiles.push(document.getElementById(`tile-${currentRow}-${i}`));
+            }
+
+            let checkTarget = targetWord;
+            const status = Array(5).fill("absent");
+
+            for (let i = 0; i < 5; i++) {
+                if (currentGuess[i] === targetWord[i]) {
+                    status[i] = "correct";
+                    checkTarget = checkTarget.replace(currentGuess[i], "_");
+                }
+            }
+
+            for (let i = 0; i < 5; i++) {
+                if (status[i] === "absent" && checkTarget.includes(currentGuess[i])) {
+                    status[i] = "present";
+                    checkTarget = checkTarget.replace(currentGuess[i], "_");
+                }
+            }
+
+            rowTiles.forEach((tile, i) => {
+                setTimeout(() => {
+                    tile.classList.add('flip');
+                    setTimeout(() => {
+                        tile.classList.add(status[i]);
+                    }, 250);
+                }, i * 150);
+            });
+
+            if (currentGuess === targetWord) {
+                setTimeout(() => {
+                    showMessage("Splendid! 🎉");
+                    rowTiles.forEach((t, i) => setTimeout(() => t.classList.add('bounce'), i * 100));
+                    gameFinished = true;
+                }, 1000);
+            } else if (currentRow === 5) {
+                setTimeout(() => {
+                    showMessage(`Word was: ${targetWord}`);
+                    gameFinished = true;
+                }, 1000);
+            }
+
+            currentRow++;
+            currentGuess = "";
+        }
+
+        function handleInput(key) {
+            if (gameFinished) return;
+            if (key === "ENTER") {
+                submitGuess();
+            } else if (key === "BACKSPACE") {
+                currentGuess = currentGuess.slice(0, -1);
+            } else if (currentGuess.length < 5 && /^[A-Z]$/.test(key)) {
+                currentGuess += key;
+            }
+            updateBoard();
+        }
+
+        function updateBoard() {
+            for (let i = 0; i < 5; i++) {
+                const tile = document.getElementById(`tile-${currentRow}-${i}`);
+                tile.innerText = currentGuess[i] || "";
+                tile.setAttribute('data-state', currentGuess[i] ? 'active' : '');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => handleInput(e.key.toUpperCase()));
+        document.querySelectorAll('.key').forEach(k => {
+            k.addEventListener('click', () => handleInput(k.getAttribute('data-key')));
+        });
+    </script>
+</body>
+</html>
